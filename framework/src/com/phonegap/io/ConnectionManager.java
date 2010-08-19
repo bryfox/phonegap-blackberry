@@ -107,9 +107,12 @@ public final class ConnectionManager {
 					}
 					conn = getInternalConnection(url,null);
 				} else {
-					// Invoke native browser.
-					ConnectionManager.invokeBrowser(url);
-					return conn;
+					try {
+						return (HttpConnection)Connector.open(url);
+					} catch (IOException e) {
+						// Invoke native browser.
+						ConnectionManager.invokeBrowser(url);
+					}
 				}
 			}
 		} else {
