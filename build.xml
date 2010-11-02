@@ -36,8 +36,16 @@
 	</target>
 	
 	<target name="sign" depends="build">
-		<sigtool codfile="${framework.build.dir}/${project.output}.cod" jdehome="${sigtool.jde}" password="${sigtool.password}" />
-		<delete file="LogFile.txt" />
+		<if>
+			<equals arg1="${sigtool.password}" arg2="" />
+			<then>
+				<echo message="Skipping code signing." />
+			</then>
+			<else>
+				<sigtool codfile="${framework.build.dir}/${project.output}.cod" jdehome="${sigtool.jde}" password="${sigtool.password}" />
+				<delete file="LogFile.txt" />
+			</else>
+		</if>
 	</target>
 
 	<target name="clean">
