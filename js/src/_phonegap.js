@@ -204,30 +204,51 @@ PhoneGap.onNativeReady = new PhoneGap.Channel();
 PhoneGap.onDeviceReady = new PhoneGap.Channel();
 
 
-// Compatibility stuff so that we can use addEventListener('deviceready')
-// and addEventListener('touchstart')
-PhoneGap.m_document_addEventListener = document.addEventListener;
+// `Element` and DOM Level 2 (addEventListener) are not defined in BlackBerry 4.5
+// We'll handle the DOMContentLoaded event, but apps should not make use of addEventListener
+if (typeof Element !== 'undefined' && typeof document.addEventListener !== 'undefined') {
+	// Compatibility stuff so that we can use addEventListener('deviceready')
+	// and addEventListener('touchstart')
+	PhoneGap.m_document_addEventListener = document.addEventListener;
 
-document.addEventListener = function(evt, handler, capture) {
-    if (evt === 'deviceready') {
-        PhoneGap.onDeviceReady.subscribeOnce(handler);
-    } else {
-        PhoneGap.m_document_addEventListener.call(document, evt, handler, capture);
-    }
-};
+	document.addEventListener = function(evt, handler, capture) {
+		if (evt === 'deviceready') {
+			PhoneGap.onDeviceReady.subscribeOnce(handler);
+		} else {
+			PhoneGap.m_document_addEventListener.call(document, evt, handler, capture);
+		}
+	};
 
-PhoneGap.m_element_addEventListener = Element.prototype.addEventListener;
+	PhoneGap.m_element_addEventListener = Element.prototype.addEventListener;
 
-/**
- * For BlackBerry, the touchstart event does not work so we need to do click
- * events when touchstart events are attached.
- */
-Element.prototype.addEventListener = function(evt, handler, capture) {
-    if (evt === 'touchstart') {
-        evt = 'click';
-    }
-    PhoneGap.m_element_addEventListener.call(this, evt, handler, capture);
-};
+	/**
+	 * For BlackBerry, the touchstart event does not work so we need to do click
+	 * events when touchstart events are attached.
+	 */
+	Element.prototype.addEventListener = function(evt, handler, capture) {
+		if (evt === 'touchstart') {
+			evt = 'click';
+		}
+		PhoneGap.m_element_addEventListener.call(this, evt, handler, capture);
+	};
+
+	document.addEventListener('DOMContentLoaded', function() {
+		PhoneGap.onDOMContentLoaded.fire();
+	}, false);
+
+} else {
+	// On 4.5., there's no DOMContentLoaded method either.
+	// Trigger ready event on window load instead.
+	(function () {
+		var _onload = window.onload;
+		window.onload = function(evt) {
+			PhoneGap.onDOMContentLoaded.fire();
+			if (_onload instanceof Function) {
+				_onload(evt);
+			}
+		};
+	}());
+}
 
 // _nativeReady is global variable that the native side can set
 // to signify that the native code is ready. It is a global since 
@@ -238,8 +259,8 @@ PhoneGap.Channel.join(function() {
     PhoneGap.onDeviceReady.fire();
 }, [ PhoneGap.onDOMContentLoaded, PhoneGap.onNativeReady ]);
 
-
-// Listen for DOMContentLoaded and notify our channel subscribers
-document.addEventListener('DOMContentLoaded', function() {
-    PhoneGap.onDOMContentLoaded.fire();
-}, false);
+// No event listener support in BlackBerry 4.5
+// Fake this with a timeout here?
+if (typeof document.addEventListener !== 'undefined') {
+	// Listen for DOMContentLoaded and notify our channel subscribers
+}
